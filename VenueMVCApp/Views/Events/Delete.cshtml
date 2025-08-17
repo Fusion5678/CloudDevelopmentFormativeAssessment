@@ -1,0 +1,63 @@
+@model VenueDBApp.Data.Event
+
+@{
+    ViewData["Title"] = "Delete Event";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="mb-0">Delete Event</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading">Warning!</h4>
+                        <p>Are you sure you want to delete this event? This action cannot be undone.</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Event Information</h5>
+                            <dl class="row">
+                                <dt class="col-sm-4">Event ID:</dt>
+                                <dd class="col-sm-8">@Model.EventId</dd>
+                                
+                                <dt class="col-sm-4">Event Name:</dt>
+                                <dd class="col-sm-8">@Model.EventName</dd>
+                                
+                                <dt class="col-sm-4">Event Date:</dt>
+                                <dd class="col-sm-8">@Model.EventDate.ToString("MMM dd, yyyy")</dd>
+                                
+                                @if (Model.Venue != null)
+                                {
+                                    <dt class="col-sm-4">Venue:</dt>
+                                    <dd class="col-sm-8">@Model.Venue.VenueName</dd>
+                                }
+                                
+                                @if (!string.IsNullOrEmpty(Model.Description))
+                                {
+                                    <dt class="col-sm-4">Description:</dt>
+                                    <dd class="col-sm-8">@Model.Description</dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="EventId" />
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
