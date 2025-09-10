@@ -1,4 +1,4 @@
-@model VenueDBApp.Data.Booking
+@model VenueDBApp.Data.BookingSummary
 
 @{
     ViewData["Title"] = "Delete Booking";
@@ -28,13 +28,13 @@
                                 <dd class="col-sm-8">@Model.BookingDate.ToString("MMM dd, yyyy")</dd>
                                 
                                 <dt class="col-sm-4">Event:</dt>
-                                <dd class="col-sm-8">@Model.Event.EventName</dd>
+                                <dd class="col-sm-8">@Model.EventName</dd>
                                 
                                 <dt class="col-sm-4">Event Date:</dt>
-                                <dd class="col-sm-8">@Model.Event.EventDate.ToString("MMM dd, yyyy")</dd>
+                                <dd class="col-sm-8">@Model.EventDate.ToString("MMM dd, yyyy")</dd>
                                 
                                 <dt class="col-sm-4">Venue:</dt>
-                                <dd class="col-sm-8">@Model.Venue.VenueName</dd>
+                                <dd class="col-sm-8">@Model.VenueName</dd>
                             </dl>
                         </div>
                     </div>

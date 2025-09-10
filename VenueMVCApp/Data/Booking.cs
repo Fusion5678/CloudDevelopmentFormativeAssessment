@@ -13,7 +13,7 @@ public partial class Booking
 
     public DateTime BookingDate { get; set; }
 
-    public virtual Event Event { get; set; } = null!;
+    public virtual Event? Event { get; set; } = null!;
 
-    public virtual Venue Venue { get; set; } = null!;
+    public virtual Venue? Venue { get; set; } = null!;
 }

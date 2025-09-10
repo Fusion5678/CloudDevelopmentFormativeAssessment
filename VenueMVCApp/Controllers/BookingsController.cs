@@ -15,13 +15,28 @@ namespace VenueDBApp.Controllers
         }
 
         // GET: Bookings
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var bookings = await _context.Bookings
-                .Include(b => b.Event)
-                .Include(b => b.Venue)
-                .ToListAsync();
-            return View(bookings);
+            var bookingSummaries = _context.BookingSummaries.AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                // Search by booking ID (exact match) or event name (contains)
+                if (int.TryParse(searchString, out int bookingId))
+                {
+                    bookingSummaries = bookingSummaries.Where(b => 
+                        b.BookingId == bookingId || 
+                        b.EventName.Contains(searchString));
+                }
+                else
+                {
+                    bookingSummaries = bookingSummaries.Where(b => b.EventName.Contains(searchString));
+                }
+            }
+
+            var results = await bookingSummaries.ToListAsync();
+            ViewData["SearchString"] = searchString;
+            return View(results);
         }
 
         // GET: Bookings/Details/5
@@ -32,16 +47,14 @@ namespace VenueDBApp.Controllers
                 return NotFound();
             }
 
-            var booking = await _context.Bookings
-                .Include(b => b.Event)
-                .Include(b => b.Venue)
+            var bookingSummary = await _context.BookingSummaries
                 .FirstOrDefaultAsync(m => m.BookingId == id);
-            if (booking == null)
+            if (bookingSummary == null)
             {
                 return NotFound();
             }
 
-            return View(booking);
+            return View(bookingSummary);
         }
 
         // GET: Bookings/Create
@@ -77,17 +90,26 @@ namespace VenueDBApp.Controllers
             {
                 ModelState.AddModelError("EventId", "Please select an event.");
             }
-            
             if (booking.VenueId == 0)
             {
                 ModelState.AddModelError("VenueId", "Please select a venue.");
             }
-            
             if (booking.BookingDate < DateTime.Today)
             {
                 ModelState.AddModelError("BookingDate", "Booking date cannot be in the past.");
             }
-
+            // Double-booking validation
+            bool isDoubleBooked = await _context.Bookings.AnyAsync(b => b.VenueId == booking.VenueId && b.BookingDate == booking.BookingDate);
+            if (isDoubleBooked)
+            {
+                ModelState.AddModelError("VenueId", "This venue is already booked for the selected date.");
+            }
+            if (!ModelState.IsValid)
+            {
+                ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName", booking.EventId);
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
+                return View(booking);
+            }
             try
             {
                 _context.Add(booking);
@@ -102,7 +124,6 @@ namespace VenueDBApp.Controllers
                 ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
                 return View(booking);
             }
-         
         }
 
         // GET: Bookings/Edit/5
@@ -132,25 +153,35 @@ namespace VenueDBApp.Controllers
             {
                 return NotFound();
             }
-
-          
-                try
+            // Double-booking validation (exclude current booking)
+            bool isDoubleBooked = await _context.Bookings.AnyAsync(b => b.VenueId == booking.VenueId && b.BookingDate == booking.BookingDate && b.BookingId != booking.BookingId);
+            if (isDoubleBooked)
+            {
+                ModelState.AddModelError("VenueId", "This venue is already booked for the selected date.");
+            }
+            if (!ModelState.IsValid)
+            {
+                ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName", booking.EventId);
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
+                return View(booking);
+            }
+            try
+            {
+                _context.Update(booking);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!BookingExists(booking.BookingId))
                 {
-                    _context.Update(booking);
-                    await _context.SaveChangesAsync();
+                    return NotFound();
                 }
-                catch (DbUpdateConcurrencyException)
+                else
                 {
-                    if (!BookingExists(booking.BookingId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
-                return RedirectToAction(nameof(Index));        
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Bookings/Delete/5
@@ -161,16 +192,14 @@ namespace VenueDBApp.Controllers
                 return NotFound();
             }
 
-            var booking = await _context.Bookings
-                .Include(b => b.Event)
-                .Include(b => b.Venue)
+            var bookingSummary = await _context.BookingSummaries
                 .FirstOrDefaultAsync(m => m.BookingId == id);
-            if (booking == null)
+            if (bookingSummary == null)
             {
                 return NotFound();
             }
 
-            return View(booking);
+            return View(bookingSummary);
         }
 
         // POST: Bookings/Delete/5
@@ -202,4 +231,4 @@ namespace VenueDBApp.Controllers
             return _context.Bookings.Any(e => e.BookingId == id);
         }
     }
-} 
+}

@@ -1,4 +1,4 @@
-@model VenueDBApp.Data.Booking
+@model VenueDBApp.Data.BookingSummary
 
 @{
     ViewData["Title"] = "Booking Details";
@@ -23,18 +23,18 @@
                                 <dd class="col-sm-8">@Model.BookingDate.ToString("MMM dd, yyyy")</dd>
                                 
                                 <dt class="col-sm-4">Event:</dt>
-                                <dd class="col-sm-8">@Model.Event.EventName</dd>
+                                <dd class="col-sm-8">@Model.EventName</dd>
                                 
                                 <dt class="col-sm-4">Event Date:</dt>
-                                <dd class="col-sm-8">@Model.Event.EventDate.ToString("MMM dd, yyyy")</dd>
+                                <dd class="col-sm-8">@Model.EventDate.ToString("MMM dd, yyyy")</dd>
                                 
                                 <dt class="col-sm-4">Venue:</dt>
-                                <dd class="col-sm-8">@Model.Venue.VenueName</dd>
+                                <dd class="col-sm-8">@Model.VenueName</dd>
                                 
-                                @if (!string.IsNullOrEmpty(Model.Event.Description))
+                                @if (!string.IsNullOrEmpty(Model.Description))
                                 {
                                     <dt class="col-sm-4">Description:</dt>
-                                    <dd class="col-sm-8">@Model.Event.Description</dd>
+                                    <dd class="col-sm-8">@Model.Description</dd>
                                 }
                             </dl>
                         </div>
@@ -58,11 +58,11 @@
                     <h5 class="mb-0">Event Information</h5>
                 </div>
                 <div class="card-body">
-                    <h6>@Model.Event.EventName</h6>
-                    <p class="text-muted">@Model.Event.EventDate.ToString("MMM dd, yyyy")</p>
-                    @if (!string.IsNullOrEmpty(Model.Event.Description))
+                    <h6>@Model.EventName</h6>
+                    <p class="text-muted">@Model.EventDate.ToString("MMM dd, yyyy")</p>
+                    @if (!string.IsNullOrEmpty(Model.Description))
                     {
-                        <p>@Model.Event.Description</p>
+                        <p>@Model.Description</p>
                     }
                     <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.EventId" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-info-circle"></i> View Event Details
@@ -75,14 +75,14 @@
                     <h5 class="mb-0">Venue Information</h5>
                 </div>
                 <div class="card-body">
-                    <h6>@Model.Venue.VenueName</h6>
-                    @if (!string.IsNullOrEmpty(Model.Venue.Location))
+                    <h6>@Model.VenueName</h6>
+                    @if (!string.IsNullOrEmpty(Model.Location))
                     {
-                        <p class="text-muted">@Model.Venue.Location</p>
+                        <p class="text-muted">@Model.Location</p>
                     }
-                    @if (Model.Venue.Capacity.HasValue)
+                    @if (Model.Capacity.HasValue)
                     {
-                        <p class="text-muted">Capacity: @Model.Venue.Capacity</p>
+                        <p class="text-muted">Capacity: @Model.Capacity</p>
                     }
                     <a asp-controller="Venues" asp-action="Details" asp-route-id="@Model.VenueId" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-info-circle"></i> View Venue Details
