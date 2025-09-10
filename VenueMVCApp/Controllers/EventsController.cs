@@ -15,12 +15,35 @@ namespace VenueDBApp.Controllers
         }
 
         // GET: Events
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var events = await _context.Events
+            var events = _context.Events
                 .Include(e => e.Venue)
-                .ToListAsync();
-            return View(events);
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                // Search by event ID (exact match), event name (contains), description (contains), or venue name (contains)
+                if (int.TryParse(searchString, out int eventId))
+                {
+                    events = events.Where(e => 
+                        e.EventId == eventId || 
+                        e.EventName.Contains(searchString) ||
+                        (e.Description != null && e.Description.Contains(searchString)) ||
+                        (e.Venue != null && e.Venue.VenueName.Contains(searchString)));
+                }
+                else
+                {
+                    events = events.Where(e => 
+                        e.EventName.Contains(searchString) ||
+                        (e.Description != null && e.Description.Contains(searchString)) ||
+                        (e.Venue != null && e.Venue.VenueName.Contains(searchString)));
+                }
+            }
+
+            var results = await events.ToListAsync();
+            ViewData["SearchString"] = searchString;
+            return View(results);
         }
 
         // GET: Events/Details/5

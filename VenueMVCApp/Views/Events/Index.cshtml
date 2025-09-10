@@ -32,6 +32,49 @@
         </div>
     </div>
 
+    <!-- Search Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form asp-action="Index" method="get" class="row g-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" 
+                                       name="searchString" 
+                                       value="@ViewData["SearchString"]" 
+                                       class="form-control" 
+                                       placeholder="Search by Event ID, Name, Description, or Venue..." />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="btn-group w-100" role="group">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                    @if (!string.IsNullOrEmpty(ViewData["SearchString"]?.ToString()))
+                    {
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                Showing results for: "<strong>@ViewData["SearchString"]</strong>"
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         @foreach (var item in Model)
         {
@@ -81,12 +124,24 @@
         <div class="row">
             <div class="col-12">
                 <div class="text-center py-5">
-                    <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
-                    <h3 class="text-muted">No events found</h3>
-                    <p class="text-muted">Get started by adding your first event.</p>
-                    <a asp-action="Create" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add First Event
-                    </a>
+                    @if (!string.IsNullOrEmpty(ViewData["SearchString"]?.ToString()))
+                    {
+                        <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                        <h3 class="text-muted">No events found</h3>
+                        <p class="text-muted">No events match your search criteria: "<strong>@ViewData["SearchString"]</strong>"</p>
+                        <a asp-action="Index" class="btn btn-outline-primary">
+                            <i class="fas fa-times"></i> Clear Search
+                        </a>
+                    }
+                    else
+                    {
+                        <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
+                        <h3 class="text-muted">No events found</h3>
+                        <p class="text-muted">Get started by adding your first event.</p>
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add First Event
+                        </a>
+                    }
                 </div>
             </div>
         </div>
