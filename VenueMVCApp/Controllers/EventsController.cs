@@ -69,7 +69,15 @@ namespace VenueDBApp.Controllers
         // GET: Events/Create
         public IActionResult Create()
         {
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName");
+            var venues = _context.Venues.ToList();
+            
+            if (!venues.Any())
+            {
+                TempData["ErrorMessage"] = "No venues available. Please create some venues first.";
+                return RedirectToAction("Index", "Venues");
+            }
+            
+            ViewData["VenueID"] = new SelectList(venues, "VenueId", "VenueName");
             return View();
         }
 
@@ -78,14 +86,59 @@ namespace VenueDBApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("EventName,EventDate,Description,VenueId")] Event @event)
         {
-            if (ModelState.IsValid)
+            // Additional validation
+            if (string.IsNullOrWhiteSpace(@event.EventName))
+            {
+                ModelState.AddModelError("EventName", "Event name is required.");
+            }
+            else if (@event.EventName.Length > 100)
+            {
+                ModelState.AddModelError("EventName", "Event name cannot exceed 100 characters.");
+            }
+            
+            if (@event.EventDate < DateTime.Today)
+            {
+                ModelState.AddModelError("EventDate", "Event date cannot be in the past.");
+            }
+            
+            if (@event.VenueId == null || @event.VenueId == 0)
+            {
+                ModelState.AddModelError("VenueId", "Please select a venue.");
+            }
+            else
+            {
+                // Check if venue exists
+                var venueExists = await _context.Venues.AnyAsync(v => v.VenueId == @event.VenueId);
+                if (!venueExists)
+                {
+                    ModelState.AddModelError("VenueId", "Selected venue does not exist.");
+                }
+            }
+            
+            if (!string.IsNullOrWhiteSpace(@event.Description) && @event.Description.Length > 500)
+            {
+                ModelState.AddModelError("Description", "Description cannot exceed 500 characters.");
+            }
+            
+            if (!ModelState.IsValid)
+            {
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
+                return View(@event);
+            }
+            
+            try
             {
                 _context.Add(@event);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Event created successfully.";
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
-            return View(@event);
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error creating event: {ex.Message}";
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
+                return View(@event);
+            }
         }
 
         // GET: Events/Edit/5
@@ -115,28 +168,72 @@ namespace VenueDBApp.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            // Additional validation
+            if (string.IsNullOrWhiteSpace(@event.EventName))
             {
-                try
+                ModelState.AddModelError("EventName", "Event name is required.");
+            }
+            else if (@event.EventName.Length > 100)
+            {
+                ModelState.AddModelError("EventName", "Event name cannot exceed 100 characters.");
+            }
+            
+            if (@event.EventDate < DateTime.Today)
+            {
+                ModelState.AddModelError("EventDate", "Event date cannot be in the past.");
+            }
+            
+            if (@event.VenueId == null || @event.VenueId == 0)
+            {
+                ModelState.AddModelError("VenueId", "Please select a venue.");
+            }
+            else
+            {
+                // Check if venue exists
+                var venueExists = await _context.Venues.AnyAsync(v => v.VenueId == @event.VenueId);
+                if (!venueExists)
                 {
-                    _context.Update(@event);
-                    await _context.SaveChangesAsync();
+                    ModelState.AddModelError("VenueId", "Selected venue does not exist.");
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!EventExists(@event.EventId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+            }
+            
+            if (!string.IsNullOrWhiteSpace(@event.Description) && @event.Description.Length > 500)
+            {
+                ModelState.AddModelError("Description", "Description cannot exceed 500 characters.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
+                return View(@event);
+            }
+            
+            try
+            {
+                _context.Update(@event);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Event updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
-            return View(@event);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!EventExists(@event.EventId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "The event was modified by another user. Please refresh and try again.";
+                    ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
+                    return View(@event);
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating event: {ex.Message}";
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", @event.VenueId);
+                return View(@event);
+            }
         }
 
         // GET: Events/Delete/5
