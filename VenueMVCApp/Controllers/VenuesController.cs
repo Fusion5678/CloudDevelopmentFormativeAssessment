@@ -17,10 +17,32 @@ namespace VenueDBApp.Controllers
             _configuration = configuration;
         }
         // GET: Venues
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var venues = await _context.Venues.ToListAsync();
-            return View(venues);
+            var venues = _context.Venues.AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                // Search by venue ID (exact match), venue name (contains), location (contains), or capacity (exact match)
+                if (int.TryParse(searchString, out int venueId))
+                {
+                    venues = venues.Where(v => 
+                        v.VenueId == venueId || 
+                        v.VenueName.Contains(searchString) ||
+                        (v.Location != null && v.Location.Contains(searchString)) ||
+                        v.Capacity == venueId);
+                }
+                else
+                {
+                    venues = venues.Where(v => 
+                        v.VenueName.Contains(searchString) ||
+                        (v.Location != null && v.Location.Contains(searchString)));
+                }
+            }
+
+            var results = await venues.ToListAsync();
+            ViewData["SearchString"] = searchString;
+            return View(results);
         }
 
         // GET: Venues/Details/5
