@@ -70,6 +70,47 @@ namespace VenueDBApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("VenueName,Location,Capacity")] Venue venue, IFormFile? imageFile)
         {
+            // Additional validation
+            if (string.IsNullOrWhiteSpace(venue.VenueName))
+            {
+                ModelState.AddModelError("VenueName", "Venue name is required.");
+            }
+            else if (venue.VenueName.Length > 100)
+            {
+                ModelState.AddModelError("VenueName", "Venue name cannot exceed 100 characters.");
+            }
+            
+            if (!string.IsNullOrWhiteSpace(venue.Location) && venue.Location.Length > 200)
+            {
+                ModelState.AddModelError("Location", "Location cannot exceed 200 characters.");
+            }
+            
+            if (venue.Capacity.HasValue && venue.Capacity <= 0)
+            {
+                ModelState.AddModelError("Capacity", "Capacity must be greater than 0.");
+            }
+            else if (venue.Capacity.HasValue && venue.Capacity > 100000)
+            {
+                ModelState.AddModelError("Capacity", "Capacity cannot exceed 100,000.");
+            }
+            
+            // Image file validation
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                // Check file size (5MB limit)
+                if (imageFile.Length > 5 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("imageFile", "Image file size cannot exceed 5MB.");
+                }
+                
+                // Check file type
+                var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+                if (!allowedTypes.Contains(imageFile.ContentType.ToLower()))
+                {
+                    ModelState.AddModelError("imageFile", "Only JPEG, PNG, and GIF images are allowed.");
+                }
+            }
+
             if (!ModelState.IsValid) return View(venue);
 
             if (imageFile is { Length: > 0 })
@@ -102,14 +143,23 @@ namespace VenueDBApp.Controllers
                 }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError(string.Empty, $"Error uploading image: {ex.Message}");
+                    ModelState.AddModelError("imageFile", $"Error uploading image: {ex.Message}");
                     return View(venue);
                 }
             }
 
-            _context.Add(venue);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                _context.Add(venue);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error creating venue: {ex.Message}";
+                return View(venue);
+            }
         }
 
 
@@ -143,76 +193,125 @@ namespace VenueDBApp.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            // Additional validation
+            if (string.IsNullOrWhiteSpace(venue.VenueName))
             {
-                try
+                ModelState.AddModelError("VenueName", "Venue name is required.");
+            }
+            else if (venue.VenueName.Length > 100)
+            {
+                ModelState.AddModelError("VenueName", "Venue name cannot exceed 100 characters.");
+            }
+            
+            if (!string.IsNullOrWhiteSpace(venue.Location) && venue.Location.Length > 200)
+            {
+                ModelState.AddModelError("Location", "Location cannot exceed 200 characters.");
+            }
+            
+            if (venue.Capacity.HasValue && venue.Capacity <= 0)
+            {
+                ModelState.AddModelError("Capacity", "Capacity must be greater than 0.");
+            }
+            else if (venue.Capacity.HasValue && venue.Capacity > 100000)
+            {
+                ModelState.AddModelError("Capacity", "Capacity cannot exceed 100,000.");
+            }
+            
+            // Image file validation
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                // Check file size (5MB limit)
+                if (imageFile.Length > 5 * 1024 * 1024)
                 {
-                    // Handle image upload if a new file is provided
-                    if (imageFile is { Length: > 0 })
+                    ModelState.AddModelError("imageFile", "Image file size cannot exceed 5MB.");
+                }
+                
+                // Check file type
+                var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+                if (!allowedTypes.Contains(imageFile.ContentType.ToLower()))
+                {
+                    ModelState.AddModelError("imageFile", "Only JPEG, PNG, and GIF images are allowed.");
+                }
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(venue);
+            }
+            
+            try
+            {
+                // Handle image upload if a new file is provided
+                if (imageFile is { Length: > 0 })
+                {
+                    // Delete old image if exists
+                    var existingVenue = await _context.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.VenueId == id);
+                    if (existingVenue != null && !string.IsNullOrEmpty(existingVenue.ImageUrl))
                     {
-                        // Delete old image if exists
-                        var existingVenue = await _context.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.VenueId == id);
-                        if (existingVenue != null && !string.IsNullOrEmpty(existingVenue.ImageUrl))
+                        var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
+                        var containerName = _configuration["AzureStorage:ContainerName"];
+                        var blobServiceClient = new BlobServiceClient(connectionString);
+                        var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                        var blobName = Path.GetFileName(new Uri(existingVenue.ImageUrl).AbsolutePath);
+                        var blobClient = containerClient.GetBlobClient(blobName);
+                        await blobClient.DeleteIfExistsAsync();
+                    }
+                    try
+                    {
+                        var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
+                        var containerName = _configuration["AzureStorage:ContainerName"];
+
+                        var blobServiceClient = new BlobServiceClient(connectionString);
+                        var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+
+                        // Ensure container exists and is public
+                        await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+
+                        var fileName = $"{Guid.NewGuid()}-{Path.GetFileName(imageFile.FileName)}";
+                        var blobClient = containerClient.GetBlobClient(fileName);
+
+                        using var stream = imageFile.OpenReadStream();
+                        await blobClient.UploadAsync(stream, new BlobUploadOptions
                         {
-                            var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
-                            var containerName = _configuration["AzureStorage:ContainerName"];
-                            var blobServiceClient = new BlobServiceClient(connectionString);
-                            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-                            var blobName = Path.GetFileName(new Uri(existingVenue.ImageUrl).AbsolutePath);
-                            var blobClient = containerClient.GetBlobClient(blobName);
-                            await blobClient.DeleteIfExistsAsync();
-                        }
-                        try
-                        {
-                            var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
-                            var containerName = _configuration["AzureStorage:ContainerName"];
-
-                            var blobServiceClient = new BlobServiceClient(connectionString);
-                            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-
-                            // Ensure container exists and is public
-                            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
-
-                            var fileName = $"{Guid.NewGuid()}-{Path.GetFileName(imageFile.FileName)}";
-                            var blobClient = containerClient.GetBlobClient(fileName);
-
-                            using var stream = imageFile.OpenReadStream();
-                            await blobClient.UploadAsync(stream, new BlobUploadOptions
+                            HttpHeaders = new BlobHttpHeaders
                             {
-                                HttpHeaders = new BlobHttpHeaders
-                                {
-                                    ContentType = imageFile.ContentType
-                                }
-                            });
+                                ContentType = imageFile.ContentType
+                            }
+                        });
 
-                            // Update the ImageUrl with the new blob URL
-                            venue.ImageUrl = blobClient.Uri.ToString();
-                        }
-                        catch (Exception ex)
-                        {
-                            ModelState.AddModelError(string.Empty, $"Error uploading image: {ex.Message}");
-                            return View(venue);
-                        }
+                        // Update the ImageUrl with the new blob URL
+                        venue.ImageUrl = blobClient.Uri.ToString();
                     }
-                    // If no new image is uploaded, keep the existing ImageUrl
-
-                    _context.Update(venue);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!VenueExists(venue.VenueId))
+                    catch (Exception ex)
                     {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
+                        ModelState.AddModelError("imageFile", $"Error uploading image: {ex.Message}");
+                        return View(venue);
                     }
                 }
+                // If no new image is uploaded, keep the existing ImageUrl
+
+                _context.Update(venue);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(venue);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!VenueExists(venue.VenueId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "The venue was modified by another user. Please refresh and try again.";
+                    return View(venue);
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating venue: {ex.Message}";
+                return View(venue);
+            }
         }
 
         // GET: Venues/Delete/5
