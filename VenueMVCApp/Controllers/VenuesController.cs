@@ -288,6 +288,16 @@ namespace VenueDBApp.Controllers
                         return View(venue);
                     }
                 }
+                else
+                {
+                    // No new image uploaded, preserve existing image URL
+                    var existingVenue = await _context.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.VenueId == id);
+                    if (existingVenue != null)
+                    {
+                        venue.ImageUrl = existingVenue.ImageUrl;
+                    }
+                }
+
                 // If no new image is uploaded, keep the existing ImageUrl
 
                 _context.Update(venue);
