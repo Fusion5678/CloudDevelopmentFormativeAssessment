@@ -150,6 +150,18 @@ namespace VenueDBApp.Controllers
                     // Handle image upload if a new file is provided
                     if (imageFile is { Length: > 0 })
                     {
+                        // Delete old image if exists
+                        var existingVenue = await _context.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.VenueId == id);
+                        if (existingVenue != null && !string.IsNullOrEmpty(existingVenue.ImageUrl))
+                        {
+                            var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
+                            var containerName = _configuration["AzureStorage:ContainerName"];
+                            var blobServiceClient = new BlobServiceClient(connectionString);
+                            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                            var blobName = Path.GetFileName(new Uri(existingVenue.ImageUrl).AbsolutePath);
+                            var blobClient = containerClient.GetBlobClient(blobName);
+                            await blobClient.DeleteIfExistsAsync();
+                        }
                         try
                         {
                             var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
@@ -231,6 +243,17 @@ namespace VenueDBApp.Controllers
             {
                 try
                 {
+                    // Delete blob image if exists  
+                    if (!string.IsNullOrEmpty(venue.ImageUrl))
+                    {
+                        var connectionString = _configuration.GetConnectionString("AzureBlobStorage");
+                        var containerName = _configuration["AzureStorage:ContainerName"];   
+                        var blobServiceClient = new BlobServiceClient(connectionString);
+                        var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                        var blobName = Path.GetFileName(new Uri(venue.ImageUrl).AbsolutePath);
+                        var blobClient = containerClient.GetBlobClient(blobName);
+                        await blobClient.DeleteIfExistsAsync();
+                    }
                     _context.Venues.Remove(venue);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Venue deleted successfully.";
@@ -241,7 +264,6 @@ namespace VenueDBApp.Controllers
                     return RedirectToAction(nameof(Index));
                 }
             }
-
             return RedirectToAction(nameof(Index));
         }
 
@@ -250,4 +272,4 @@ namespace VenueDBApp.Controllers
             return _context.Venues.Any(e => e.VenueId == id);
         }
     }
-} 
+}
