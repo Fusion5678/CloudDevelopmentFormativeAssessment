@@ -32,7 +32,7 @@
                                     <dd class="col-sm-8">@Model.Location</dd>
                                 }
                                 
-                                @if (Model.Capacity.HasValue)
+                                @if (Model.Capacity>0)
                                 {
                                     <dt class="col-sm-4">Capacity:</dt>
                                     <dd class="col-sm-8">@Model.Capacity</dd>

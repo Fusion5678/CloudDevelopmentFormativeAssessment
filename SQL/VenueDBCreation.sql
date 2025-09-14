@@ -10,8 +10,8 @@ GO
 CREATE TABLE Venue (
     VenueID INT IDENTITY(1,1) PRIMARY KEY,
     VenueName NVARCHAR(100) NOT NULL,
-    Location NVARCHAR(200) NULL,
-    Capacity INT NULL,
+    Location NVARCHAR(200) NOT NULL,
+    Capacity INT NOT NULL,
     ImageUrl NVARCHAR(255) NULL
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE Event (
     EventName NVARCHAR(100) NOT NULL,
     EventDate DATE NOT NULL,
     Description NVARCHAR(MAX) NULL,
-    VenueID INT NULL,
+    VenueID INT NOT NULL,
     CONSTRAINT FK_Event_Venue FOREIGN KEY (VenueID) REFERENCES Venue(VenueID)
 );
 
@@ -34,3 +34,22 @@ CREATE TABLE Booking (
     CONSTRAINT FK_Booking_Event FOREIGN KEY (EventID) REFERENCES Event(EventID),
     CONSTRAINT FK_Booking_Venue FOREIGN KEY (VenueID) REFERENCES Venue(VenueID)
 );
+
+
+Create VIEW BookingSummary AS
+SELECT 
+    b.BookingID,
+    b.eventID,
+    b.venueID,
+    b.BookingDate,
+    e.EventName,
+    e.EventDate,
+    e.Description,
+    v.VenueName,
+    v.Location,
+    v.Capacity,
+    v.ImageUrl
+FROM Booking b
+INNER JOIN Event e ON b.EventID = e.EventID
+INNER JOIN Venue v ON b.VenueID = v.VenueID;
+

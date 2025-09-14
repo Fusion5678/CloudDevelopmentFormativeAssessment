@@ -85,11 +85,11 @@ namespace VenueDBApp.Controllers
                 ModelState.AddModelError("Location", "Location cannot exceed 200 characters.");
             }
             
-            if (venue.Capacity.HasValue && venue.Capacity <= 0)
+            if (venue.Capacity <= 0)
             {
                 ModelState.AddModelError("Capacity", "Capacity must be greater than 0.");
             }
-            else if (venue.Capacity.HasValue && venue.Capacity > 100000)
+            else if ( venue.Capacity > 100000)
             {
                 ModelState.AddModelError("Capacity", "Capacity cannot exceed 100,000.");
             }
@@ -208,11 +208,11 @@ namespace VenueDBApp.Controllers
                 ModelState.AddModelError("Location", "Location cannot exceed 200 characters.");
             }
             
-            if (venue.Capacity.HasValue && venue.Capacity <= 0)
+            if (venue.Capacity <= 0)
             {
                 ModelState.AddModelError("Capacity", "Capacity must be greater than 0.");
             }
-            else if (venue.Capacity.HasValue && venue.Capacity > 100000)
+            else if (venue.Capacity > 100000)
             {
                 ModelState.AddModelError("Capacity", "Capacity cannot exceed 100,000.");
             }

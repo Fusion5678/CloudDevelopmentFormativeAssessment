@@ -98,7 +98,7 @@
                                 <i class="fas fa-map-marker-alt"></i> @item.Location
                             </p>
                         }
-                        @if (item.Capacity.HasValue)
+                        @if (item.Capacity>0)
                         {
                             <p class="card-text">
                                 <i class="fas fa-users"></i> Capacity: @item.Capacity
